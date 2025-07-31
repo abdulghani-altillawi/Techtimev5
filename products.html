@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>منتجات Tech Time</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    .slide-container::-webkit-scrollbar {
+      display: none;
+    }
+    .nav-link:hover {
+      transform: scale(1.05);
+      transition: all 0.3s;
+    }
+    /* تصميم الفلتر */
+    #filters {
+      background: #1f2937; /* خلفية رمادية غامقة */
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    #categoryFilter {
+      background: #374151;
+      color: #f3f4f6;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      min-width: 200px;
+    }
+    #categoryFilter:hover, #categoryFilter:focus {
+      background: #4b5563;
+      outline: none;
+    }
+    label {
+      font-weight: 700;
+      margin-right: 12px;
+      color: #e0e7ff;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+  <!-- Navbar -->
+  <header class="bg-gradient-to-l from-purple-800 to-blue-600 text-white shadow">
+    <div class="container mx-auto flex items-center justify-between p-4">
+      <h1 class="text-2xl font-bold animate-pulse">Tech Time</h1>
+      <nav class="hidden md:flex gap-4">
+        <a href="#products" class="nav-link">المنتجات</a>
+        <a href="#categories" class="nav-link">الفئات</a>
+      </nav>
+      <button id="menuBtn" class="md:hidden text-2xl">☰</button>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed top-0 right-0 bg-white text-gray-900 shadow-lg h-full w-64 transform translate-x-full transition duration-300 z-50">
+      <div class="p-4 flex justify-between items-center border-b">
+        <h2 class="text-lg font-bold">القائمة</h2>
+        <button id="closeSidebar" class="text-xl">✕</button>
+      </div>
+      <nav class="flex flex-col gap-4 p-4">
+        <a href="#products" class="nav-link">المنتجات</a>
+        <a href="#categories" class="nav-link">الفئات</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <section class="h-64 bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1603791440384-56cd371ee9a7');">
+    <div class="absolute inset-0 bg-black bg-opacity-70 flex flex-col justify-center items-center text-white text-center px-4">
+      <h2 class="text-3xl md:text-5xl font-bold mb-4 animate-fade-in">مرحباً بكم في Tech Time</h2>
+      <a href="#products" class="bg-white text-blue-600 font-bold px-6 py-2 rounded hover:bg-blue-100 transition">تسوق الآن</a>
+    </div>
+  </section>
+
+  <!-- عروض -->
+  <div class="bg-yellow-400 text-center text-black py-2 text-lg font-semibold animate-pulse">🔥 عروضنا مستمرة! لا تفوت الفرصة 🔥</div>
+
+  <!-- فلتر المنتجات -->
+  <section id="filters" class="my-6 px-4 flex justify-center">
+    <label for="categoryFilter" class="self-center">الفئة الرئيسية:</label>
+    <select id="categoryFilter" class="rounded px-4 py-2 text-gray-100"></select>
+  </section>
+
+  <!-- عرض المنتجات -->
+  <section id="products" class="my-6 px-4 max-w-5xl mx-auto">
+    <h3 class="text-xl font-bold mb-4">المنتجات</h3>
+    <div class="grid grid-cols-2 gap-6" id="productsContainer"></div>
+  </section>
+
+  <script>
+    // إعداد Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPRUZs1HHbucnnOdqOr280TjLH86qETnA",
+      authDomain: "techtimev3.firebaseapp.com",
+      projectId: "techtimev3",
+      storageBucket: "techtimev3.firebasestorage.app",
+      messagingSenderId: "435597436729",
+      appId: "1:435597436729:web:2bd440942a6c0da8fb6ae8",
+      measurementId: "G-3984PMGWGH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const categoryFilter = document.getElementById("categoryFilter");
+    const productsContainer = document.getElementById("productsContainer");
+
+    let categories = [];
+    let products = [];
+
+    // جلب الفئات
+    async function fetchCategories() {
+      const snapshot = await db.collection("categories").get();
+      categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      populateCategoryFilter();
+    }
+
+    // جلب المنتجات
+    async function fetchProducts() {
+      const snapshot = await db.collection("products").get();
+      products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      populateProducts();
+    }
+
+    // ملأ فلتر الفئات
+    function populateCategoryFilter() {
+      categoryFilter.innerHTML = `<option value="all">كل الفئات</option>`;
+      categories.forEach(cat => {
+        categoryFilter.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+      });
+    }
+
+    // توليد كارت منتج
+    function createProductCard(product) {
+      return `
+      <div class="bg-gradient-to-r from-purple-700 to-blue-700 rounded-xl shadow-lg p-4 text-center" data-aos="fade-up">
+        <img src="${product.image}" alt="${product.name}" class="h-40 w-full object-contain rounded-md mb-3" />
+        <h4 class="font-semibold text-lg mb-1">${product.name}</h4>
+        <p class="text-yellow-400 font-bold mb-2">${product.price.toLocaleString()} ل.س</p>
+        <a href="https://wa.me/963969237946?text=مرحبا، أود طلب: ${encodeURIComponent(product.name)}" target="_blank" class="inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition">اطلبها الآن</a>
+      </div>`;
+    }
+
+    // عرض المنتجات مع فلتر الفئة الرئيسية فقط
+    function populateProducts() {
+      productsContainer.innerHTML = "";
+
+      const selectedCategory = categoryFilter.value.trim();
+
+      let filteredProducts = products;
+
+      if (selectedCategory !== "all") {
+        filteredProducts = filteredProducts.filter(p => p.categoryId && p.categoryId.trim() === selectedCategory);
+      }
+
+      if (filteredProducts.length === 0) {
+        productsContainer.innerHTML = `<p class="text-center text-gray-400">لا توجد منتجات مطابقة.</p>`;
+        return;
+      }
+
+      filteredProducts.forEach(product => {
+        productsContainer.innerHTML += createProductCard(product);
+      });
+
+      AOS.refresh();
+    }
+
+    // تحديث المنتجات عند تغيير الفئة الرئيسية
+    categoryFilter.addEventListener("change", populateProducts);
+
+    // تحميل البيانات الأولي
+    async function init() {
+      await fetchCategories();
+      await fetchProducts();
+    }
+
+    init();
+    AOS.init();
+
+    // Sidebar controls
+    document.getElementById("menuBtn").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.remove("translate-x-full");
+    });
+    document.getElementById("closeSidebar").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.add("translate-x-full");
+    });
+  </script>
+
+  <!-- فوتر -->
+  <footer class="bg-gradient-to-l from-purple-800 to-blue-600 text-white py-6 mt-12">
+    <div class="container mx-auto px-4 text-center md:text-right space-y-3">
+      <p class="font-semibold text-lg">Tech Time</p>
+      <p class="text-sm opacity-80">© 2025 جميع الحقوق محفوظة</p>
+      <div class="flex justify-center md:justify-end gap-6 text-xl mt-2">
+        <a href="https://www.facebook.com" target="_blank" aria-label="Facebook" class="hover:text-gray-300 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-6 h-6" viewBox="0 0 24 24">
+            <path d="M22 12a10 10 0 1 0-11.5 9.8v-6.9h-2.3v-2.9h2.3V9.8c0-2.3 1.4-3.6 3.5-3.6 1 0 2 .1 2 .1v2.3h-1.2c-1.2 0-1.6.8-1.6 1.6v2h2.7l-.4 2.9h-2.3v6.9A10 10 0 0 0 22 12z"/>
+          </svg>
+        </a>
+        <a href="https://www.twitter.com" target="_blank" aria-label="Twitter" class="hover:text-gray-300 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-6 h-6" viewBox="0 0 24 24">
+            <path d="M23 3a10.9 10.9 0 0 1-3.1.9 5.2 5.2 0 0 0 2.3-2.9 10.9 10.9 0 0 1-3.3 1.3 5.3 5.3 0 0 0-9 4.8A15 15 0 0 1 2 4.6a5.3 5.3 0 0 0 1.6 7 5.2 5.2 0 0 1-2.4-.7v.1a5.3 5.3 0 0 0 4.2 5.2 5.3 5.3 0 0 1-2.3.1 5.3 5.3 0 0 0 4.9 3.7A10.7 10.7 0 0 1 1 19.5 15 15 0 0 0 8 21c9.5 0 14.7-8 14.7-14.7 0-.2 0-.4 0-.6A10.4 10.4 0 0 0 23 3z"/>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com" target="_blank" aria-label="Instagram" class="hover:text-gray-300 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-6 h-6" viewBox="0 0 24 24">
+            <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3zm5 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm3.5-3a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Sidebar controls
+    document.getElementById("menuBtn").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.remove("translate-x-full");
+    });
+    document.getElementById("closeSidebar").addEventListener("click", () => {
+      document.getElementById("sidebar").classList.add("translate-x-full");
+    });
+  </script>
+</body>
+</html>

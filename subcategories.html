@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>الفئات الفرعية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    body { background-color: #111827; }
+    .sidebar { transition: right 0.3s ease-in-out; }
+  </style>
+</head>
+<body class="text-white">
+
+  <!-- ✅ Navbar / Sidebar -->
+  <div class="bg-gray-800 p-4 flex justify-between items-center">
+    <button onclick="toggleSidebar()" class="md:hidden text-white">&#9776;</button>
+    <h1 class="text-xl font-bold">Tech Time</h1>
+    <nav class="hidden md:flex gap-4">
+      <a href="index.html" class="hover:text-yellow-400">الرئيسية</a>
+      <a href="categories.html" class="hover:text-yellow-400">الفئات</a>
+      <a href="subcategories.html" class="hover:text-yellow-400">الفئات الفرعية</a>
+    </nav>
+  </div>
+
+  <div id="sidebar" class="sidebar fixed top-0 right-[-250px] bg-gray-800 w-64 h-full z-50 md:hidden p-6">
+    <button onclick="toggleSidebar()" class="text-white mb-6">✖</button>
+    <nav class="flex flex-col gap-4">
+      <a href="index.html" class="hover:text-yellow-400">الرئيسية</a>
+      <a href="categories.html" class="hover:text-yellow-400">الفئات</a>
+      <a href="subcategories.html" class="hover:text-yellow-400">الفئات الفرعية</a>
+    </nav>
+  </div>
+
+  <!-- ✅ عنوان الصفحة -->
+  <div class="text-center my-6">
+    <h2 class="text-3xl font-bold text-yellow-400" data-aos="fade-down">الفئات الفرعية</h2>
+  </div>
+
+  <!-- ✅ الفئات الفرعية كبطاقات -->
+  <div id="subcategoriesContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 px-4 pb-12" data-aos="fade-up">
+    <!-- يتم ملء الفئات الفرعية هنا -->
+  </div>
+
+  <!-- ✅ Firebase & عرض البيانات -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPRUZs1HHbucnnOdqOr280TjLH86qETnA",
+      authDomain: "techtimev3.firebaseapp.com",
+      projectId: "techtimev3",
+      storageBucket: "techtimev3.firebasestorage.app",
+      messagingSenderId: "435597436729",
+      appId: "1:435597436729:web:2bd440942a6c0da8fb6ae8"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const container = document.getElementById("subcategoriesContainer");
+
+    db.collection("subcategories").get().then(snapshot => {
+      snapshot.forEach(doc => {
+        const sub = doc.data();
+        const card = document.createElement("a");
+        card.href = `subcategory.html?id=${doc.id}`;
+        card.className = `relative h-40 rounded-xl overflow-hidden bg-center bg-cover transform hover:scale-105 transition duration-300 shadow-md`;
+        card.style.backgroundImage = `url('${sub.image || "https://via.placeholder.com/300x200"}')`;
+        card.innerHTML = `
+          <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <h3 class="text-lg font-bold text-white">${sub.name}</h3>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    });
+  </script>
+
+  <!-- ✅ Sidebar Toggle Script -->
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.style.right = sidebar.style.right === "0px" ? "-250px" : "0px";
+    }
+  </script>
+
+  <script>
+    AOS.init({ duration: 600 });
+  </script>
+</body>
+</html>

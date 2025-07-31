@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تفاصيل المنتج</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 p-6">
+
+  <button onclick="history.back()" class="mb-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">رجوع</button>
+
+  <div id="productDetails" class="max-w-xl mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+    <h1 id="productName" class="text-2xl font-bold mb-4"></h1>
+    <img id="productImage" class="w-full h-64 object-contain mb-4 rounded" src="" alt="صورة المنتج" />
+    <p id="productPrice" class="text-yellow-400 text-xl font-semibold mb-4"></p>
+    <a id="orderLink" href="#" target="_blank" class="inline-block bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded">اطلبها الآن عبر واتساب</a>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPRUZs1HHbucnnOdqOr280TjLH86qETnA",
+      authDomain: "techtimev3.firebaseapp.com",
+      projectId: "techtimev3",
+      storageBucket: "techtimev3.firebasestorage.app",
+      messagingSenderId: "435597436729",
+      appId: "1:435597436729:web:2bd440942a6c0da8fb6ae8",
+      measurementId: "G-3984PMGWGH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // جلب id المنتج من رابط الصفحة
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get("id");
+
+    if (!productId) {
+      document.getElementById("productDetails").innerHTML = "<p>لم يتم تحديد المنتج.</p>";
+    } else {
+      db.collection("products").doc(productId).get().then(doc => {
+        if (!doc.exists) {
+          document.getElementById("productDetails").innerHTML = "<p>المنتج غير موجود.</p>";
+          return;
+        }
+        const data = doc.data();
+        document.getElementById("productName").textContent = data.name;
+        document.getElementById("productImage").src = data.image || "";
+        document.getElementById("productPrice").textContent = data.price ? data.price.toLocaleString() + " ل.س" : "";
+        const orderLink = document.getElementById("orderLink");
+        orderLink.href = `https://wa.me/963969237946?text=${encodeURIComponent("مرحبا، أود طلب: " + data.name)}`;
+      }).catch(error => {
+        document.getElementById("productDetails").innerHTML = `<p>حدث خطأ: ${error.message}</p>`;
+      });
+    }
+  </script>
+
+</body>
+</html>
